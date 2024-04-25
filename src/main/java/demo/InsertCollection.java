@@ -9,7 +9,6 @@ import io.milvus.param.*;
 import io.milvus.param.collection.*;
 import io.milvus.param.dml.InsertParam;
 import io.milvus.param.index.CreateIndexParam;
-import util.PropertyFilesUtil;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -20,20 +19,22 @@ public class InsertCollection {
 
 
     public static void main(String[] args) {
-        int dim = Integer.parseInt(PropertyFilesUtil.getRunValue("dim"));
-        int shardNum = Integer.parseInt(PropertyFilesUtil.getRunValue("shard_num"));
-        int batchSize = Integer.parseInt(PropertyFilesUtil.getRunValue("batch_size"));
-        int concurrencyNum = Integer.parseInt(PropertyFilesUtil.getRunValue("concurrency_num"));
-        long totalNum = Long.parseLong(PropertyFilesUtil.getRunValue("total_num"));
-        boolean cleanCollection = Boolean.parseBoolean(PropertyFilesUtil.getRunValue("clean_collection"));
+        String uri = System.getProperty("uri") == null ? "172.0.0.1" : System.getProperty("uri");
+        String token = System.getProperty("token") == null ? "default" : System.getProperty("token");
+        int dim = System.getProperty("dim") == null ? 768 : Integer.parseInt(System.getProperty("dim"));
+        int shardNum = System.getProperty("shard_num") == null ? 1 : Integer.parseInt(System.getProperty("shard_num"));
+        int batchSize = System.getProperty("batch_size") == null ? 10000 : Integer.parseInt(System.getProperty("batch_size"));
+        int concurrencyNum = System.getProperty("concurrency_num") == null ? 1 : Integer.parseInt(System.getProperty("concurrency_num"));
+        long totalNum =  System.getProperty("total_num") == null ? 10000 : Integer.parseInt(System.getProperty("total_num"));
+        boolean cleanCollection = System.getProperty("clean_collection") == null || Boolean.getBoolean(System.getProperty("total_num"));
 
         // connect to milvus
         final MilvusServiceClient milvusClient = new MilvusServiceClient(
                 ConnectParam.newBuilder()
-                        .withUri(PropertyFilesUtil.getRunValue("uri"))
-                        .withToken(PropertyFilesUtil.getRunValue("token"))
+                        .withUri(uri)
+                        .withToken(token)
                         .build());
-        logger.info("Connecting to DB: " + PropertyFilesUtil.getRunValue("uri"));
+        logger.info("Connecting to DB: " + uri);
 
         String collectionName = "book";
         if (cleanCollection) {
@@ -76,16 +77,15 @@ public class InsertCollection {
 
         //insert data with customized ids
         Random ran = new Random();
-        int singleNum = 10000;
-        int insertRounds = 100;
+        long insertRounds = totalNum/batchSize;
         long insertTotalTime = 0L;
-        logger.info("Inserting " + singleNum * insertRounds + " entities... ");
+        logger.info("Inserting total " + totalNum + " entities... ");
         for (int r = 0; r < insertRounds; r++) {
             long startTime = System.currentTimeMillis();
             List<Long> book_id_array = new ArrayList<>();
             List<Long> word_count_array = new ArrayList<>();
             List<List<Float>> book_intro_array = new ArrayList<>();
-            for (long i = r * singleNum; i < (r + 1) * singleNum; ++i) {
+            for (long i = r * batchSize; i < (r + 1) * batchSize; ++i) {
                 book_id_array.add(i);
                 word_count_array.add(i);
                 List<Float> vector = new ArrayList<>();
