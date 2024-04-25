@@ -35,8 +35,8 @@ public class InsertCollectionConcurrency {
                         .withToken(token)
                         .build());
         logger.info("Connecting to DB: " + uri);
-
-        String collectionName = "book";
+        Random ran = new Random();
+        String collectionName = "book"+ran.nextInt(1000);
         if (cleanCollection) {
             milvusClient.dropCollection(DropCollectionParam.newBuilder().withCollectionName(collectionName).build());
             logger.info("clean collection successfully!");
@@ -76,7 +76,7 @@ public class InsertCollectionConcurrency {
 }
 
         //insert data with customized ids
-        Random ran = new Random();
+
         long insertRounds = totalNum/batchSize;
         float insertTotalTime = 0;
         logger.info("Inserting total " + totalNum + " entities... ");
