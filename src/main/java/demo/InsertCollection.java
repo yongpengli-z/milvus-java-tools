@@ -76,8 +76,8 @@ public class InsertCollection {
 
         //insert data with customized ids
         Random ran = new Random();
-        int singleNum = 1000;
-        int insertRounds = 10;
+        int singleNum = 10000;
+        int insertRounds = 100;
         long insertTotalTime = 0L;
         logger.info("Inserting " + singleNum * insertRounds + " entities... ");
         for (int r = 0; r < insertRounds; r++) {
