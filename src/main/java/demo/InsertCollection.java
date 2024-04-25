@@ -105,7 +105,7 @@ public class InsertCollection {
                     .build();
             R<MutationResult> insertR = milvusClient.insert(insertParam);
             long endTime = System.currentTimeMillis();
-            logger.info("Insert " +batchSize +" cost:" + (endTime - startTime) / 1000.00 + " seconds!");
+            logger.info("Insert " +batchSize +" cost:" + (endTime - startTime) / 1000.00 + " seconds,has insert "+(r+1)*batchSize);
 
         }
         long endTimeTotal = System.currentTimeMillis();
