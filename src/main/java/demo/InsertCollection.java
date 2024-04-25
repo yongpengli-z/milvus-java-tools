@@ -9,13 +9,14 @@ import io.milvus.param.*;
 import io.milvus.param.collection.*;
 import io.milvus.param.dml.InsertParam;
 import io.milvus.param.index.CreateIndexParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.logging.Logger;
 
 
 public class InsertCollection {
-    public static Logger logger = Logger.getLogger(InsertCollectionConcurrency.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(InsertCollection.class);
 
 
     public static void main(String[] args) {
