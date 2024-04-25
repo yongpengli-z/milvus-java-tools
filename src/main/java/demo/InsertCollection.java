@@ -15,7 +15,7 @@ import java.util.logging.Logger;
 
 
 public class InsertCollection {
-    public static Logger logger = Logger.getLogger(InsertCollection.class.getName());
+    public static Logger logger = Logger.getLogger(InsertCollectionConcurrency.class.getName());
 
 
     public static void main(String[] args) {
@@ -35,8 +35,8 @@ public class InsertCollection {
                         .withToken(token)
                         .build());
         logger.info("Connecting to DB: " + uri);
-
-        String collectionName = "book";
+        Random ran = new Random();
+        String collectionName = "book"+ran.nextInt(1000);
         if (cleanCollection) {
             milvusClient.dropCollection(DropCollectionParam.newBuilder().withCollectionName(collectionName).build());
             logger.info("clean collection successfully!");
@@ -73,13 +73,14 @@ public class InsertCollection {
             logger.info("Schema: " + createCollectionParam);
             milvusClient.createCollection(createCollectionParam);
             logger.info("Success!");
-}
+        }
 
         //insert data with customized ids
-        Random ran = new Random();
+
         long insertRounds = totalNum/batchSize;
-        long insertTotalTime = 0L;
+        float insertTotalTime = 0;
         logger.info("Inserting total " + totalNum + " entities... ");
+        long startTimeTotal = System.currentTimeMillis();
         for (int r = 0; r < insertRounds; r++) {
             long startTime = System.currentTimeMillis();
             List<Long> book_id_array = new ArrayList<>();
@@ -105,8 +106,10 @@ public class InsertCollection {
             R<MutationResult> insertR = milvusClient.insert(insertParam);
             long endTime = System.currentTimeMillis();
             logger.info("Insert " +batchSize +" cost:" + (endTime - startTime) / 1000.00 + " seconds!");
-            insertTotalTime += (endTime - startTime) / 1000.00;
+
         }
+        long endTimeTotal = System.currentTimeMillis();
+        insertTotalTime = (float) ((endTimeTotal - startTimeTotal) / 1000.00);
         logger.info("Total cost of inserting " + totalNum + " entities: " + insertTotalTime + " seconds!");
         // flush data
         logger.info("Flushing...");
