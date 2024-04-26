@@ -31,7 +31,7 @@ public class InsertCollectionConcurrency {
         int concurrencyNum = System.getProperty("concurrency_num") == null ? 1 : Integer.parseInt(System.getProperty("concurrency_num"));
         long totalNum =  System.getProperty("total_num") == null ? 10000 : Integer.parseInt(System.getProperty("total_num"));
         boolean cleanCollection = System.getProperty("clean_collection") != null && Boolean.getBoolean(System.getProperty("clean_collection"));
-        boolean perLoad = System.getProperty("perLoad") != null && Boolean.getBoolean(System.getProperty("perLoad"));
+        boolean perLoad = System.getProperty("perload") != null && Boolean.getBoolean(System.getProperty("perload"));
 
         logger.info("perLoad: " + perLoad);
         // connect to milvus
