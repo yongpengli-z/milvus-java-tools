@@ -31,6 +31,7 @@ public class InsertCollectionConcurrency {
         int concurrencyNum = System.getProperty("concurrency_num") == null ? 1 : Integer.parseInt(System.getProperty("concurrency_num"));
         long totalNum =  System.getProperty("total_num") == null ? 10000 : Integer.parseInt(System.getProperty("total_num"));
         boolean cleanCollection = System.getProperty("clean_collection") == null || Boolean.getBoolean(System.getProperty("total_num"));
+        boolean perLoad = System.getProperty("perLoad") == null || Boolean.getBoolean(System.getProperty("perLoad"));
 
         // connect to milvus
         final MilvusServiceClient milvusClient = new MilvusServiceClient(
@@ -77,6 +78,38 @@ public class InsertCollectionConcurrency {
             logger.info("Schema: " + createCollectionParam);
             milvusClient.createCollection(createCollectionParam);
             logger.info("Success!");
+        }
+
+        if (perLoad){
+            //  build index
+        logger.info("Building AutoIndex...");
+        final IndexType INDEX_TYPE = IndexType.AUTOINDEX;   // IndexType
+        long startIndexTime = System.currentTimeMillis();
+        R<RpcStatus> indexR = milvusClient.createIndex(
+                CreateIndexParam.newBuilder()
+                        .withCollectionName(collectionName)
+                        .withFieldName(bookIntroField.getName())
+                        .withIndexType(INDEX_TYPE)
+                        .withMetricType(MetricType.L2)
+                        .withSyncMode(Boolean.TRUE)
+                        .withSyncWaitingInterval(500L)
+                        .withSyncWaitingTimeout(30L)
+                        .build());
+        long endIndexTime = System.currentTimeMillis();
+        logger.info("Succeed in " + (endIndexTime - startIndexTime) / 1000.00 + " seconds!");
+
+        // load collection
+        logger.info("Loading collection...");
+        long startLoadTime = System.currentTimeMillis();
+        milvusClient.loadCollection(LoadCollectionParam.newBuilder()
+                .withCollectionName(collectionName)
+                .withSyncLoad(true)
+                .withSyncLoadWaitingInterval(500L)
+                .withSyncLoadWaitingTimeout(100L)
+                .build());
+        long endLoadTime = System.currentTimeMillis();
+        logger.info("Succeed in " + (endLoadTime - startLoadTime) / 1000.00 + " seconds");
+
         }
 
         //insert data with customized ids
@@ -154,34 +187,6 @@ public class InsertCollectionConcurrency {
         System.out.println("Succeed in " + (endFlushTime - startFlushTime) / 1000.00 + " seconds!");
 
 
-//        // build index
-//        logger.info("Building AutoIndex...");
-//        final IndexType INDEX_TYPE = IndexType.AUTOINDEX;   // IndexType
-//        long startIndexTime = System.currentTimeMillis();
-//        R<RpcStatus> indexR = milvusClient.createIndex(
-//                CreateIndexParam.newBuilder()
-//                        .withCollectionName(collectionName)
-//                        .withFieldName(bookIntroField.getName())
-//                        .withIndexType(INDEX_TYPE)
-//                        .withMetricType(MetricType.L2)
-//                        .withSyncMode(Boolean.TRUE)
-//                        .withSyncWaitingInterval(500L)
-//                        .withSyncWaitingTimeout(30L)
-//                        .build());
-//        long endIndexTime = System.currentTimeMillis();
-//        logger.info("Succeed in " + (endIndexTime - startIndexTime) / 1000.00 + " seconds!");
-//
-//        // load collection
-//        logger.info("Loading collection...");
-//        long startLoadTime = System.currentTimeMillis();
-//        milvusClient.loadCollection(LoadCollectionParam.newBuilder()
-//                .withCollectionName(collectionName)
-//                .withSyncLoad(true)
-//                .withSyncLoadWaitingInterval(500L)
-//                .withSyncLoadWaitingTimeout(100L)
-//                .build());
-//        long endLoadTime = System.currentTimeMillis();
-//        logger.info("Succeed in " + (endLoadTime - startLoadTime) / 1000.00 + " seconds");
 
 //        // search
 //        final Integer SEARCH_K = 2;                       // TopK
