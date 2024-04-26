@@ -33,6 +33,7 @@ public class InsertCollectionConcurrency {
         boolean cleanCollection = System.getProperty("clean_collection") != null && Boolean.getBoolean(System.getProperty("clean_collection"));
         boolean perLoad = System.getProperty("perLoad") != null && Boolean.getBoolean(System.getProperty("perLoad"));
 
+        logger.info("perLoad: " + perLoad);
         // connect to milvus
         final MilvusServiceClient milvusClient = new MilvusServiceClient(
                 ConnectParam.newBuilder()
