@@ -87,7 +87,7 @@ public class InsertCollection {
             List<Long> book_id_array = new ArrayList<>();
             List<Long> word_count_array = new ArrayList<>();
             List<List<Float>> book_intro_array = new ArrayList<>();
-            for (long i = r * batchSize; i < (r + 1) * batchSize; ++i) {
+            for (long i = (long) r * batchSize; i < (long) (r + 1) * batchSize; ++i) {
                 book_id_array.add(i);
                 word_count_array.add(i);
                 List<Float> vector = new ArrayList<>();

@@ -1,6 +1,7 @@
 package demo;
 
 
+import com.google.common.collect.Lists;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DataType;
 import io.milvus.grpc.DescribeCollectionResponse;
@@ -9,13 +10,16 @@ import io.milvus.param.*;
 import io.milvus.param.collection.*;
 import io.milvus.param.dml.InsertParam;
 import io.milvus.param.index.CreateIndexParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.logging.Logger;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 
 public class InsertCollectionConcurrency {
-    public static Logger logger = Logger.getLogger(InsertCollectionConcurrency.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(InsertCollection.class);
 
 
     public static void main(String[] args) {
@@ -73,7 +77,7 @@ public class InsertCollectionConcurrency {
             logger.info("Schema: " + createCollectionParam);
             milvusClient.createCollection(createCollectionParam);
             logger.info("Success!");
-}
+        }
 
         //insert data with customized ids
 
@@ -81,7 +85,13 @@ public class InsertCollectionConcurrency {
         float insertTotalTime = 0;
         logger.info("Inserting total " + totalNum + " entities... ");
         long startTimeTotal = System.currentTimeMillis();
-        for (int r = 0; r < insertRounds; r++) {
+        ExecutorService executorService = Executors.newFixedThreadPool(concurrencyNum);
+        ArrayList<Future> list = new ArrayList<>();
+        for(int c = 0; c < concurrencyNum; c++) {
+            int finalE = c;
+            Callable callable = () -> {
+                List<Integer> results = new ArrayList<>();
+        for (long r = (insertRounds/concurrencyNum)*finalE; r < (insertRounds/concurrencyNum)*(finalE+1); r++) {
             long startTime = System.currentTimeMillis();
             List<Long> book_id_array = new ArrayList<>();
             List<Long> word_count_array = new ArrayList<>();
@@ -103,14 +113,34 @@ public class InsertCollectionConcurrency {
                     .withCollectionName(collectionName)
                     .withFields(fields)
                     .build();
-            R<MutationResult> insertR = milvusClient.insert(insertParam);
+            try {
+                R<MutationResult> insertR = milvusClient.insert(insertParam);
+                results.add(insertR.getStatus());
+            } catch (Exception e) {
+                throw new RuntimeException(e.getMessage());
+            }
             long endTime = System.currentTimeMillis();
-            logger.info("Insert " +batchSize +" cost:" + (endTime - startTime) / 1000.00 + " seconds!");
+            logger.info("线程" + finalE + "插入第" + r + "批次数据,Insert " +batchSize +" cost:" + (endTime - startTime) / 1000.00 + " seconds,has insert "+((r-(insertRounds/concurrencyNum)*finalE)+1)*batchSize);
 
+        }
+            return results;
+        };
+            Future future = executorService.submit(callable);
+            list.add(future);
+        }
+        for(Future future : list){
+            try {
+                logger.info("线程返回结果："+ future.get() );
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
         }
         long endTimeTotal = System.currentTimeMillis();
         insertTotalTime = (float) ((endTimeTotal - startTimeTotal) / 1000.00);
         logger.info("Total cost of inserting " + totalNum + " entities: " + insertTotalTime + " seconds!");
+        executorService.shutdown();
         // flush data
         logger.info("Flushing...");
         long startFlushTime = System.currentTimeMillis();
@@ -124,34 +154,34 @@ public class InsertCollectionConcurrency {
         System.out.println("Succeed in " + (endFlushTime - startFlushTime) / 1000.00 + " seconds!");
 
 
-        // build index
-        logger.info("Building AutoIndex...");
-        final IndexType INDEX_TYPE = IndexType.AUTOINDEX;   // IndexType
-        long startIndexTime = System.currentTimeMillis();
-        R<RpcStatus> indexR = milvusClient.createIndex(
-                CreateIndexParam.newBuilder()
-                        .withCollectionName(collectionName)
-                        .withFieldName(bookIntroField.getName())
-                        .withIndexType(INDEX_TYPE)
-                        .withMetricType(MetricType.L2)
-                        .withSyncMode(Boolean.TRUE)
-                        .withSyncWaitingInterval(500L)
-                        .withSyncWaitingTimeout(30L)
-                        .build());
-        long endIndexTime = System.currentTimeMillis();
-        logger.info("Succeed in " + (endIndexTime - startIndexTime) / 1000.00 + " seconds!");
-
-        // load collection
-        logger.info("Loading collection...");
-        long startLoadTime = System.currentTimeMillis();
-        milvusClient.loadCollection(LoadCollectionParam.newBuilder()
-                .withCollectionName(collectionName)
-                .withSyncLoad(true)
-                .withSyncLoadWaitingInterval(500L)
-                .withSyncLoadWaitingTimeout(100L)
-                .build());
-        long endLoadTime = System.currentTimeMillis();
-        logger.info("Succeed in " + (endLoadTime - startLoadTime) / 1000.00 + " seconds");
+//        // build index
+//        logger.info("Building AutoIndex...");
+//        final IndexType INDEX_TYPE = IndexType.AUTOINDEX;   // IndexType
+//        long startIndexTime = System.currentTimeMillis();
+//        R<RpcStatus> indexR = milvusClient.createIndex(
+//                CreateIndexParam.newBuilder()
+//                        .withCollectionName(collectionName)
+//                        .withFieldName(bookIntroField.getName())
+//                        .withIndexType(INDEX_TYPE)
+//                        .withMetricType(MetricType.L2)
+//                        .withSyncMode(Boolean.TRUE)
+//                        .withSyncWaitingInterval(500L)
+//                        .withSyncWaitingTimeout(30L)
+//                        .build());
+//        long endIndexTime = System.currentTimeMillis();
+//        logger.info("Succeed in " + (endIndexTime - startIndexTime) / 1000.00 + " seconds!");
+//
+//        // load collection
+//        logger.info("Loading collection...");
+//        long startLoadTime = System.currentTimeMillis();
+//        milvusClient.loadCollection(LoadCollectionParam.newBuilder()
+//                .withCollectionName(collectionName)
+//                .withSyncLoad(true)
+//                .withSyncLoadWaitingInterval(500L)
+//                .withSyncLoadWaitingTimeout(100L)
+//                .build());
+//        long endLoadTime = System.currentTimeMillis();
+//        logger.info("Succeed in " + (endLoadTime - startLoadTime) / 1000.00 + " seconds");
 
 //        // search
 //        final Integer SEARCH_K = 2;                       // TopK
