@@ -67,7 +67,7 @@ public class InsertCollectionConcurrency {
                     .withDescription("my first collection")
                     .withShardsNum(shardNum)
                     .addFieldType(bookIdField)
-                    .addFieldType(wordCountField)
+//                    .addFieldType(wordCountField)
                     .addFieldType(bookIntroField)
                     .build();
             logger.info("Creating example collection: " + collectionName);
@@ -136,7 +136,7 @@ public class InsertCollectionConcurrency {
                     }
                     List<InsertParam.Field> fields = new ArrayList<>();
                     fields.add(new InsertParam.Field(bookIdField.getName(), book_id_array));
-                    fields.add(new InsertParam.Field(wordCountField.getName(), word_count_array));
+//                    fields.add(new InsertParam.Field(wordCountField.getName(), word_count_array));
                     fields.add(new InsertParam.Field(bookIntroField.getName(), book_intro_array));
                     InsertParam insertParam = InsertParam.newBuilder()
                             .withCollectionName(collectionName)
