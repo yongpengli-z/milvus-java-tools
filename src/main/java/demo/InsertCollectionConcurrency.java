@@ -14,13 +14,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class InsertCollectionConcurrency {
     private static final Logger logger = LoggerFactory.getLogger(InsertCollection.class);
-
-
     public static void main(String[] args) {
         String uri = System.getProperty("uri") == null ? "172.0.0.1" : System.getProperty("uri");
         String token = System.getProperty("token") == null ? "default" : System.getProperty("token");
@@ -32,7 +29,6 @@ public class InsertCollectionConcurrency {
         boolean cleanCollection = (System.getProperty("clean_collection") != null && System.getProperty("clean_collection").equalsIgnoreCase("true"));
         boolean perLoad = System.getProperty("perload") != null && System.getProperty("perload").equalsIgnoreCase("true");
 
-        logger.info("perLoad: " + perLoad);
         // connect to milvus
         final MilvusServiceClient milvusClient = new MilvusServiceClient(
                 ConnectParam.newBuilder()
@@ -82,38 +78,37 @@ public class InsertCollectionConcurrency {
 
         if (perLoad){
             //  build index
-        logger.info("Building AutoIndex...");
-        final IndexType INDEX_TYPE = IndexType.AUTOINDEX;   // IndexType
-        long startIndexTime = System.currentTimeMillis();
-        R<RpcStatus> indexR = milvusClient.createIndex(
-                CreateIndexParam.newBuilder()
-                        .withCollectionName(collectionName)
-                        .withFieldName(bookIntroField.getName())
-                        .withIndexType(INDEX_TYPE)
-                        .withMetricType(MetricType.L2)
-                        .withSyncMode(Boolean.TRUE)
-                        .withSyncWaitingInterval(500L)
-                        .withSyncWaitingTimeout(30L)
-                        .build());
-        long endIndexTime = System.currentTimeMillis();
-        logger.info("Succeed in " + (endIndexTime - startIndexTime) / 1000.00 + " seconds!");
+            logger.info("Building AutoIndex...");
+            final IndexType INDEX_TYPE = IndexType.AUTOINDEX;   // IndexType
+            long startIndexTime = System.currentTimeMillis();
+            R<RpcStatus> indexR = milvusClient.createIndex(
+                    CreateIndexParam.newBuilder()
+                            .withCollectionName(collectionName)
+                            .withFieldName(bookIntroField.getName())
+                            .withIndexType(INDEX_TYPE)
+                            .withMetricType(MetricType.L2)
+                            .withSyncMode(Boolean.TRUE)
+                            .withSyncWaitingInterval(500L)
+                            .withSyncWaitingTimeout(30L)
+                            .build());
+            long endIndexTime = System.currentTimeMillis();
+            logger.info("Succeed in " + (endIndexTime - startIndexTime) / 1000.00 + " seconds!");
 
-        // load collection
-        logger.info("Loading collection...");
-        long startLoadTime = System.currentTimeMillis();
-        milvusClient.loadCollection(LoadCollectionParam.newBuilder()
-                .withCollectionName(collectionName)
-                .withSyncLoad(true)
-                .withSyncLoadWaitingInterval(500L)
-                .withSyncLoadWaitingTimeout(100L)
-                .build());
-        long endLoadTime = System.currentTimeMillis();
-        logger.info("Succeed in " + (endLoadTime - startLoadTime) / 1000.00 + " seconds");
+            // load collection
+            logger.info("Loading collection...");
+            long startLoadTime = System.currentTimeMillis();
+            milvusClient.loadCollection(LoadCollectionParam.newBuilder()
+                    .withCollectionName(collectionName)
+                    .withSyncLoad(true)
+                    .withSyncLoadWaitingInterval(500L)
+                    .withSyncLoadWaitingTimeout(100L)
+                    .build());
+            long endLoadTime = System.currentTimeMillis();
+            logger.info("Succeed in " + (endLoadTime - startLoadTime) / 1000.00 + " seconds");
 
         }
 
         //insert data with customized ids
-
         long insertRounds = totalNum/batchSize;
         float insertTotalTime = 0;
         logger.info("Inserting total " + totalNum + " entities... ");
@@ -123,57 +118,52 @@ public class InsertCollectionConcurrency {
         // insert data with multiple threads
         for(int c = 0; c < concurrencyNum; c++) {
             int finalE = c;
-
             Callable callable = () -> {
                 List<Integer> results = new ArrayList<>();
-                List<Integer> exceptionCount = new ArrayList<>();
-        for (long r = (insertRounds/concurrencyNum)*finalE; r < (insertRounds/concurrencyNum)*(finalE+1); r++) {
-            long startTime = System.currentTimeMillis();
-            List<Long> book_id_array = new ArrayList<>();
-            List<Long> word_count_array = new ArrayList<>();
-            List<List<Float>> book_intro_array = new ArrayList<>();
-            for (long i = r * batchSize; i < (r + 1) * batchSize; ++i) {
-                book_id_array.add(i);
-                word_count_array.add(i);
-                List<Float> vector = new ArrayList<>();
-                for (int k = 0; k < dim; ++k) {
-                    vector.add(ran.nextFloat());
-                }
-                book_intro_array.add(vector);
-            }
-            List<InsertParam.Field> fields = new ArrayList<>();
-            fields.add(new InsertParam.Field(bookIdField.getName(), book_id_array));
-            fields.add(new InsertParam.Field(wordCountField.getName(), word_count_array));
-            fields.add(new InsertParam.Field(bookIntroField.getName(), book_intro_array));
-            InsertParam insertParam = InsertParam.newBuilder()
-                    .withCollectionName(collectionName)
-                    .withFields(fields)
-                    .build();
-            try {
-                R<MutationResult> insertR = milvusClient.insert(insertParam);
-                results.add(insertR.getStatus());
-            } catch (Exception e) {
-                exceptionCount.add(-1);
-                if(exceptionCount.size() > 10){
-                    break;
-                }
-                throw new RuntimeException(e.getMessage());
-            }
-            long endTime = System.currentTimeMillis();
-            logger.info("线程" + finalE + "插入第" + r + "批次数据,Insert " +batchSize +" cost:" + (endTime - startTime) / 1000.00 + " seconds,has insert "+((r-(insertRounds/concurrencyNum)*finalE)+1)*batchSize);
+                for (long r = (insertRounds/concurrencyNum)*finalE; r < (insertRounds/concurrencyNum)*(finalE+1); r++) {
+                    long startTime = System.currentTimeMillis();
+                    List<Long> book_id_array = new ArrayList<>();
+                    List<Long> word_count_array = new ArrayList<>();
+                    List<List<Float>> book_intro_array = new ArrayList<>();
+                    for (long i = r * batchSize; i < (r + 1) * batchSize; ++i) {
+                        book_id_array.add(i);
+                        word_count_array.add(i);
+                        List<Float> vector = new ArrayList<>();
+                        for (int k = 0; k < dim; ++k) {
+                            vector.add(ran.nextFloat());
+                        }
+                        book_intro_array.add(vector);
+                    }
+                    List<InsertParam.Field> fields = new ArrayList<>();
+                    fields.add(new InsertParam.Field(bookIdField.getName(), book_id_array));
+                    fields.add(new InsertParam.Field(wordCountField.getName(), word_count_array));
+                    fields.add(new InsertParam.Field(bookIntroField.getName(), book_intro_array));
+                    InsertParam insertParam = InsertParam.newBuilder()
+                            .withCollectionName(collectionName)
+                            .withFields(fields)
+                            .build();
+                    try {
+                        R<MutationResult> insertR = milvusClient.insert(insertParam);
+                        results.add(insertR.getStatus());
+                        if (results.stream().filter(x -> x != 0).count() > 10){
+                            break;
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e.getMessage());
+                    }
+                    long endTime = System.currentTimeMillis();
+                    logger.info("线程" + finalE + "插入第" + r + "批次数据,Insert " +batchSize +" cost:" + (endTime - startTime) / 1000.00 + " seconds,has insert "+((r-(insertRounds/concurrencyNum)*finalE)+1)*batchSize);
 
-        }
-            return results;
-        };
+                }
+                return results;
+            };
             Future future = executorService.submit(callable);
             list.add(future);
         }
         for(Future future : list){
             try {
                 logger.info("线程返回结果："+ future.get() );
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
+            } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             }
         }
