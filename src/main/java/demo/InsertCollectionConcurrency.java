@@ -8,6 +8,8 @@ import io.milvus.grpc.MutationResult;
 import io.milvus.param.*;
 import io.milvus.param.collection.*;
 import io.milvus.param.dml.InsertParam;
+import io.milvus.param.highlevel.collection.ListCollectionsParam;
+import io.milvus.param.highlevel.collection.response.ListCollectionsResponse;
 import io.milvus.param.index.CreateIndexParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +30,7 @@ public class InsertCollectionConcurrency {
         long totalNum =  System.getProperty("total_num") == null ? 10000 : Integer.parseInt(System.getProperty("total_num"));
         boolean cleanCollection = (System.getProperty("clean_collection") != null && System.getProperty("clean_collection").equalsIgnoreCase("true"));
         boolean perLoad = System.getProperty("perload") != null && System.getProperty("perload").equalsIgnoreCase("true");
-
+        String  collectionName = System.getProperty("collection") == null ? null : System.getProperty("collection");
         // connect to milvus
         final MilvusServiceClient milvusClient = new MilvusServiceClient(
                 ConnectParam.newBuilder()
@@ -37,44 +39,53 @@ public class InsertCollectionConcurrency {
                         .build());
         logger.info("Connecting to DB: " + uri);
         Random ran = new Random();
-        String collectionName = "book"+ran.nextInt(1000);
+
+        R<ListCollectionsResponse> listCollectionsResponseR = milvusClient.listCollections(ListCollectionsParam.newBuilder().build());
+        List<String> collectionNames = listCollectionsResponseR.getData().collectionNames;
         if (cleanCollection) {
-            milvusClient.dropCollection(DropCollectionParam.newBuilder().withCollectionName(collectionName).build());
-            logger.info("clean collection successfully!");
+            collectionNames.forEach(x-> milvusClient.dropCollection(DropCollectionParam.newBuilder().withCollectionName(x).build()));
+            logger.info("clean collections successfully!");
         }
-        // Check if the collection exists
-        R<DescribeCollectionResponse> responseR =
-                milvusClient.describeCollection(DescribeCollectionParam.newBuilder().withCollectionName(collectionName).build());
-        // create collection if not exist
-        FieldType bookIdField = FieldType.newBuilder()
-                .withName("book_id")
-                .withDataType(DataType.Int64)
-                .withPrimaryKey(true)
-                .withAutoID(false)
-                .build();
-        FieldType wordCountField = FieldType.newBuilder()
-                .withName("word_count")
-                .withDataType(DataType.Int64)
-                .build();
-        FieldType bookIntroField = FieldType.newBuilder()
-                .withName("book_intro")
-                .withDataType(DataType.FloatVector)
-                .withDimension(dim)
-                .build();
-        if (responseR.getData() == null) {
-            CreateCollectionParam createCollectionParam = CreateCollectionParam.newBuilder()
-                    .withCollectionName(collectionName)
-                    .withDescription("my first collection")
-                    .withShardsNum(shardNum)
-                    .addFieldType(bookIdField)
-//                    .addFieldType(wordCountField)
-                    .addFieldType(bookIntroField)
+
+            FieldType bookIdField = FieldType.newBuilder()
+                    .withName("book_id")
+                    .withDataType(DataType.Int64)
+                    .withPrimaryKey(true)
+                    .withAutoID(false)
                     .build();
+            FieldType wordCountField = FieldType.newBuilder()
+                    .withName("word_count")
+                    .withDataType(DataType.Int64)
+                    .build();
+            FieldType bookIntroField = FieldType.newBuilder()
+                    .withName("book_intro")
+                    .withDataType(DataType.FloatVector)
+                    .withDimension(dim)
+                    .build();
+        if (collectionName == null){
+            collectionName = "book"+ran.nextInt(1000);
+            // create collection if not exist
+            CreateCollectionParam createCollectionParam = CreateCollectionParam.newBuilder()
+                        .withCollectionName(collectionName)
+                        .withDescription("my first collection")
+                        .withShardsNum(shardNum)
+                        .addFieldType(bookIdField)
+//                    .addFieldType(wordCountField)
+                        .addFieldType(bookIntroField)
+                        .build();
             logger.info("Creating example collection: " + collectionName);
             logger.info("Schema: " + createCollectionParam);
             milvusClient.createCollection(createCollectionParam);
             logger.info("Success!");
-        }
+        } else{
+            // Check if the collection does not exist
+            R<DescribeCollectionResponse> responseR =
+                    milvusClient.describeCollection(DescribeCollectionParam.newBuilder().withCollectionName(collectionName).build());
+            if(responseR.getData()==null){
+                logger.info("你输入的collectionName:"+collectionName+" 不存在!");
+                return;
+            }
+       }
 
         if (perLoad){
             //  build index
@@ -118,6 +129,7 @@ public class InsertCollectionConcurrency {
         // insert data with multiple threads
         for(int c = 0; c < concurrencyNum; c++) {
             int finalE = c;
+            String finalCollectionName = collectionName;
             Callable callable = () -> {
                 List<Integer> results = new ArrayList<>();
                 for (long r = (insertRounds/concurrencyNum)*finalE; r < (insertRounds/concurrencyNum)*(finalE+1); r++) {
@@ -139,7 +151,7 @@ public class InsertCollectionConcurrency {
 //                    fields.add(new InsertParam.Field(wordCountField.getName(), word_count_array));
                     fields.add(new InsertParam.Field(bookIntroField.getName(), book_intro_array));
                     InsertParam insertParam = InsertParam.newBuilder()
-                            .withCollectionName(collectionName)
+                            .withCollectionName(finalCollectionName)
                             .withFields(fields)
                             .build();
                     try {
