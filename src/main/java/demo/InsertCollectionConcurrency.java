@@ -155,7 +155,7 @@ public class InsertCollectionConcurrency {
             } catch (Exception e) {
                 exceptionCount.add(-1);
                 if(exceptionCount.size() > 10){
-                    return results;
+                    break;
                 }
                 throw new RuntimeException(e.getMessage());
             }
