@@ -1,7 +1,6 @@
 package demo;
 
 
-import com.google.common.collect.Lists;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DataType;
 import io.milvus.grpc.DescribeCollectionResponse;
@@ -15,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class InsertCollectionConcurrency {
@@ -121,6 +120,8 @@ public class InsertCollectionConcurrency {
         long startTimeTotal = System.currentTimeMillis();
         ExecutorService executorService = Executors.newFixedThreadPool(concurrencyNum);
         ArrayList<Future> list = new ArrayList<>();
+        AtomicInteger exceptionCount = new AtomicInteger();
+        // insert data with multiple threads
         for(int c = 0; c < concurrencyNum; c++) {
             int finalE = c;
             Callable callable = () -> {
@@ -151,6 +152,10 @@ public class InsertCollectionConcurrency {
                 R<MutationResult> insertR = milvusClient.insert(insertParam);
                 results.add(insertR.getStatus());
             } catch (Exception e) {
+                exceptionCount.getAndIncrement();
+                if(exceptionCount.get() > 20){
+                    return false;
+                }
                 throw new RuntimeException(e.getMessage());
             }
             long endTime = System.currentTimeMillis();
