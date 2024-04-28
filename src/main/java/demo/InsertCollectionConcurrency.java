@@ -30,7 +30,7 @@ public class InsertCollectionConcurrency {
         long totalNum =  System.getProperty("total_num") == null ? 10000 : Integer.parseInt(System.getProperty("total_num"));
         boolean cleanCollection = (System.getProperty("clean_collection") != null && System.getProperty("clean_collection").equalsIgnoreCase("true"));
         boolean perLoad = System.getProperty("perload") != null && System.getProperty("perload").equalsIgnoreCase("true");
-        String  collectionName = System.getProperty("collection") == null ? null : System.getProperty("collection");
+        String  collectionName = System.getProperty("collection") == null ? "" : System.getProperty("collection");
         // connect to milvus
         final MilvusServiceClient milvusClient = new MilvusServiceClient(
                 ConnectParam.newBuilder()
@@ -62,7 +62,7 @@ public class InsertCollectionConcurrency {
                     .withDataType(DataType.FloatVector)
                     .withDimension(dim)
                     .build();
-        if (collectionName == null){
+        if (collectionName.equalsIgnoreCase("")){
             collectionName = "book"+ran.nextInt(1000);
             // create collection if not exist
             CreateCollectionParam createCollectionParam = CreateCollectionParam.newBuilder()
