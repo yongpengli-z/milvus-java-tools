@@ -120,12 +120,13 @@ public class InsertCollectionConcurrency {
         long startTimeTotal = System.currentTimeMillis();
         ExecutorService executorService = Executors.newFixedThreadPool(concurrencyNum);
         ArrayList<Future> list = new ArrayList<>();
-        AtomicInteger exceptionCount = new AtomicInteger();
         // insert data with multiple threads
         for(int c = 0; c < concurrencyNum; c++) {
             int finalE = c;
+
             Callable callable = () -> {
                 List<Integer> results = new ArrayList<>();
+                List<Integer> exceptionCount = new ArrayList<>();
         for (long r = (insertRounds/concurrencyNum)*finalE; r < (insertRounds/concurrencyNum)*(finalE+1); r++) {
             long startTime = System.currentTimeMillis();
             List<Long> book_id_array = new ArrayList<>();
@@ -152,9 +153,9 @@ public class InsertCollectionConcurrency {
                 R<MutationResult> insertR = milvusClient.insert(insertParam);
                 results.add(insertR.getStatus());
             } catch (Exception e) {
-                exceptionCount.getAndIncrement();
-                if(exceptionCount.get() > 20){
-                    return false;
+                exceptionCount.add(-1);
+                if(exceptionCount.size() > 10){
+                    return results;
                 }
                 throw new RuntimeException(e.getMessage());
             }
