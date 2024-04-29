@@ -2,10 +2,7 @@ package demo;
 
 
 import io.milvus.client.MilvusServiceClient;
-import io.milvus.grpc.DataType;
-import io.milvus.grpc.DescribeCollectionResponse;
-import io.milvus.grpc.GetCollectionStatisticsResponse;
-import io.milvus.grpc.MutationResult;
+import io.milvus.grpc.*;
 import io.milvus.param.*;
 import io.milvus.param.collection.*;
 import io.milvus.param.dml.InsertParam;
@@ -109,14 +106,19 @@ public class InsertCollectionConcurrency {
             // load collection
             logger.info("Loading collection...");
             long startLoadTime = System.currentTimeMillis();
-            milvusClient.loadCollection(LoadCollectionParam.newBuilder()
-                    .withCollectionName(collectionName)
-                    .withSyncLoad(true)
-                    .withSyncLoadWaitingInterval(500L)
-                    .withSyncLoadWaitingTimeout(100L)
-                    .build());
+            int loadState=0;
+            do {
+                // load
+                R<RpcStatus> rpcStatusR = milvusClient.loadCollection(LoadCollectionParam.newBuilder()
+                        .withCollectionName(collectionName).withSyncLoad(false)
+                        .build());
+                R<GetLoadStateResponse> loadStateResp = milvusClient.getLoadState(GetLoadStateParam.newBuilder()
+                        .withCollectionName(collectionName)
+                        .build());
+                loadState = loadStateResp.getData().getState().getNumber();
+            } while(loadState !=LoadState.LoadStateLoaded.getNumber());
             long endLoadTime = System.currentTimeMillis();
-            logger.info("Succeed in " + (endLoadTime - startLoadTime) / 1000.00 + " seconds");
+            logger.info("Load cost " + (endLoadTime - startLoadTime) / 1000.00 + " seconds");
 
         }
 
