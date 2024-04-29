@@ -18,7 +18,7 @@ import java.util.concurrent.*;
 
 public class InsertCollectionConcurrency {
     private static final Logger logger = LoggerFactory.getLogger(InsertCollection.class);
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         String uri = System.getProperty("uri") == null ? "172.0.0.1" : System.getProperty("uri");
         String token = System.getProperty("token") == null ? "default" : System.getProperty("token");
         int dim = System.getProperty("dim") == null ? 768 : Integer.parseInt(System.getProperty("dim"));
@@ -116,6 +116,7 @@ public class InsertCollectionConcurrency {
                         .withCollectionName(collectionName)
                         .build());
                 loadState = loadStateResp.getData().getState().getNumber();
+                Thread.sleep(1000L);
             } while(loadState !=LoadState.LoadStateLoaded.getNumber());
             long endLoadTime = System.currentTimeMillis();
             logger.info("Load cost " + (endLoadTime - startLoadTime) / 1000.00 + " seconds");
