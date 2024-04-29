@@ -4,6 +4,7 @@ package demo;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DataType;
 import io.milvus.grpc.DescribeCollectionResponse;
+import io.milvus.grpc.GetCollectionStatisticsResponse;
 import io.milvus.grpc.MutationResult;
 import io.milvus.param.*;
 import io.milvus.param.collection.*;
@@ -183,6 +184,12 @@ public class InsertCollectionConcurrency {
         insertTotalTime = (float) ((endTimeTotal - startTimeTotal) / 1000.00);
         logger.info("Total cost of inserting " + totalNum + " entities: " + insertTotalTime + " seconds!");
         executorService.shutdown();
+        //实际数据量
+        R<GetCollectionStatisticsResponse> collectionStatistics = milvusClient.getCollectionStatistics(GetCollectionStatisticsParam.newBuilder()
+                .withCollectionName(collectionName)
+                .build());
+        logger.info("当前collection数据量:"+collectionStatistics);
+
         // flush data
         logger.info("Flushing...");
         long startFlushTime = System.currentTimeMillis();
