@@ -4,6 +4,7 @@ import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.*;
 import io.milvus.param.*;
 import io.milvus.param.collection.*;
+import io.milvus.param.control.GetPersistentSegmentInfoParam;
 import io.milvus.param.dml.InsertParam;
 import io.milvus.param.highlevel.collection.ListCollectionsParam;
 import io.milvus.param.highlevel.collection.response.ListCollectionsResponse;
@@ -45,6 +46,9 @@ public class InsertCollectionConcurrency {
             && System.getProperty("perload").equalsIgnoreCase("true");
     String collectionName =
         System.getProperty("collection") == null ? "" : System.getProperty("collection");
+    boolean segmentListen =
+        (System.getProperty("segment_listen") != null
+            && System.getProperty("segment_listen").equalsIgnoreCase("true"));
 
     // connect to milvus
     final MilvusServiceClient milvusClient =
@@ -158,8 +162,10 @@ public class InsertCollectionConcurrency {
     for (int c = 0; c < concurrencyNum; c++) {
       int finalE = c;
       String finalCollectionName = collectionName;
+
       Callable callable =
           () -> {
+            long flushedSegment = 0;
             List<Integer> results = new ArrayList<>();
             for (long r = (insertRounds / concurrencyNum) * finalE;
                 r < (insertRounds / concurrencyNum) * (finalE + 1);
@@ -189,6 +195,24 @@ public class InsertCollectionConcurrency {
                       .build();
               try {
                 R<MutationResult> insertR = milvusClient.insert(insertParam);
+
+                if (perLoad && segmentListen && insertR.getStatus() == 9) {
+                  logger.info("监测到禁写，开启10min等待...");
+                  Thread.sleep(1000L * 60 * 10);
+                  R<GetPersistentSegmentInfoResponse> segmentInfoResponseR =
+                      milvusClient.getPersistentSegmentInfo(
+                          GetPersistentSegmentInfoParam.newBuilder()
+                              .withCollectionName(finalCollectionName)
+                              .build());
+                  long count =
+                      segmentInfoResponseR.getData().getInfosList().stream()
+                          .filter(x -> x.getState().equals(SegmentState.Flushed))
+                          .count();
+                  if (count == flushedSegment) {
+                    break;
+                  }
+                  flushedSegment =count;
+                }
                 results.add(insertR.getStatus());
                 if (results.stream().filter(x -> x != 0).count() > 10) {
                   break;
