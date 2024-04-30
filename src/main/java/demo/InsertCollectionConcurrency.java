@@ -1,5 +1,7 @@
 package demo;
 
+import com.alibaba.fastjson.JSON;
+import demo.utils.HttpClientUtils;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.*;
 import io.milvus.param.*;
@@ -20,7 +22,7 @@ public class InsertCollectionConcurrency {
 
   public static void main(String[] args) throws InterruptedException {
     String uri = System.getProperty("uri") == null ? "172.0.0.1" : System.getProperty("uri");
-    String token = System.getProperty("token") == null ? "default" : System.getProperty("token");
+
     int dim = System.getProperty("dim") == null ? 768 : Integer.parseInt(System.getProperty("dim"));
     int shardNum =
         System.getProperty("shard_num") == null
@@ -49,6 +51,23 @@ public class InsertCollectionConcurrency {
     boolean segmentListen =
         (System.getProperty("segment_listen") != null
             && System.getProperty("segment_listen").equalsIgnoreCase("true"));
+
+    // 获取root密码
+    String token="";
+    String urlPWD = null;
+    String substring = uri.substring(uri.indexOf("https://") + 8, 28);
+    if (uri.contains("ali")||uri.contains("tc")) {
+      urlPWD = "https://cloud-test.cloud-uat.zilliz.cn/cloud/v1/test/getRootPwd?instanceId=" + substring + "";
+      String pwdString = HttpClientUtils.doGet(urlPWD);
+      token = "root:"+JSON.parseObject(pwdString).getString("Data");
+    } else if(uri.contains("aws")||uri.contains("gcp")||uri.contains("az")) {
+      urlPWD = "https://cloud-test.cloud-uat3.zilliz.com/cloud/v1/test/getRootPwd?instanceId=" + substring + "";
+      String pwdString = HttpClientUtils.doGet(urlPWD);
+      token = "root:"+JSON.parseObject(pwdString).getString("Data");
+    } else{
+      token = "root:Milvus";
+    }
+
 
     // connect to milvus
     final MilvusServiceClient milvusClient =
