@@ -67,6 +67,7 @@ public class InsertCollectionConcurrency {
     } else{
       token = "root:Milvus";
     }
+    logger.info("token:"+token);
 
 
     // connect to milvus
