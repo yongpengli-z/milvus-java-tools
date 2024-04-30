@@ -53,22 +53,27 @@ public class InsertCollectionConcurrency {
             && System.getProperty("segment_listen").equalsIgnoreCase("true"));
 
     // 获取root密码
-    String token="";
+    String token = "";
     String urlPWD = null;
     String substring = uri.substring(uri.indexOf("https://") + 8, 28);
-    if (uri.contains("ali")||uri.contains("tc")) {
-      urlPWD = "https://cloud-test.cloud-uat.zilliz.cn/cloud/v1/test/getRootPwd?instanceId=" + substring + "";
+    if (uri.contains("ali") || uri.contains("tc")) {
+      urlPWD =
+          "https://cloud-test.cloud-uat.zilliz.cn/cloud/v1/test/getRootPwd?instanceId="
+              + substring
+              + "";
       String pwdString = HttpClientUtils.doGet(urlPWD);
-      token = "root:"+JSON.parseObject(pwdString).getString("Data");
-    } else if(uri.contains("aws")||uri.contains("gcp")||uri.contains("az")) {
-      urlPWD = "https://cloud-test.cloud-uat3.zilliz.com/cloud/v1/test/getRootPwd?instanceId=" + substring + "";
+      token = "root:" + JSON.parseObject(pwdString).getString("Data");
+    } else if (uri.contains("aws") || uri.contains("gcp") || uri.contains("az")) {
+      urlPWD =
+          "https://cloud-test.cloud-uat3.zilliz.com/cloud/v1/test/getRootPwd?instanceId="
+              + substring
+              + "";
       String pwdString = HttpClientUtils.doGet(urlPWD);
-      token = "root:"+JSON.parseObject(pwdString).getString("Data");
-    } else{
+      token = "root:" + JSON.parseObject(pwdString).getString("Data");
+    } else {
       token = "root:Milvus";
     }
-    logger.info("token:"+token);
-
+    logger.info("token:" + token);
 
     // connect to milvus
     final MilvusServiceClient milvusClient =
@@ -185,7 +190,6 @@ public class InsertCollectionConcurrency {
 
       Callable callable =
           () -> {
-            long flushedSegment = 0;
             List<Integer> results = new ArrayList<>();
             for (long r = (insertRounds / concurrencyNum) * finalE;
                 r < (insertRounds / concurrencyNum) * (finalE + 1);
@@ -217,8 +221,17 @@ public class InsertCollectionConcurrency {
                 R<MutationResult> insertR = milvusClient.insert(insertParam);
 
                 if (perLoad && segmentListen && insertR.getStatus() == 9) {
-                  logger.info("监测到禁写，开启10min等待...");
-                  Thread.sleep(1000L * 60 * 10);
+                  logger.info("监测到禁写，开启15min等待...");
+                  R<GetPersistentSegmentInfoResponse> segmentInfoResponseR0 =
+                      milvusClient.getPersistentSegmentInfo(
+                          GetPersistentSegmentInfoParam.newBuilder()
+                              .withCollectionName(finalCollectionName)
+                              .build());
+                  long count0 =
+                      segmentInfoResponseR0.getData().getInfosList().stream()
+                          .filter(x -> x.getState().equals(SegmentState.Flushed))
+                          .count();
+                  Thread.sleep(1000L * 60 * 15);
                   R<GetPersistentSegmentInfoResponse> segmentInfoResponseR =
                       milvusClient.getPersistentSegmentInfo(
                           GetPersistentSegmentInfoParam.newBuilder()
@@ -228,14 +241,15 @@ public class InsertCollectionConcurrency {
                       segmentInfoResponseR.getData().getInfosList().stream()
                           .filter(x -> x.getState().equals(SegmentState.Flushed))
                           .count();
-                  if (count == flushedSegment) {
+                  if (count0 == count) {
                     break;
                   }
-                  flushedSegment =count;
                 }
-                results.add(insertR.getStatus());
-                if (results.stream().filter(x -> x != 0).count() > 10) {
-                  break;
+                if (!segmentListen) {
+                  results.add(insertR.getStatus());
+                  if (results.stream().filter(x -> x != 0).count() > 10) {
+                    break;
+                  }
                 }
               } catch (Exception e) {
                 throw new RuntimeException(e.getMessage());
