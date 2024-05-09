@@ -11,6 +11,7 @@ import io.milvus.param.dml.InsertParam;
 import io.milvus.param.highlevel.collection.ListCollectionsParam;
 import io.milvus.param.highlevel.collection.response.ListCollectionsResponse;
 import io.milvus.param.index.CreateIndexParam;
+import org.apache.parquet.filter2.predicate.Operators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -183,7 +184,7 @@ public class InsertCollectionConcurrency {
     logger.info("Inserting total " + totalNum + " entities... ");
     long startTimeTotal = System.currentTimeMillis();
     ExecutorService executorService = Executors.newFixedThreadPool(concurrencyNum);
-    ArrayList<Future> list = new ArrayList<>();
+    ArrayList<Future<List<Integer>>> list = new ArrayList<>();
     // insert data with multiple threads
     for (int c = 0; c < concurrencyNum; c++) {
       int finalE = c;
@@ -270,12 +271,15 @@ public class InsertCollectionConcurrency {
             }
             return results;
           };
-      Future future = executorService.submit(callable);
+      Future<List<Integer>> future = executorService.submit(callable);
       list.add(future);
     }
-    for (Future future : list) {
+    long requestNum=0;
+    for (Future<List<Integer>> future : list) {
       try {
+        long count = future.get().stream().filter(x -> x == 0).count();
         logger.info("线程返回结果：" + future.get());
+        requestNum+=count;
       } catch (InterruptedException | ExecutionException e) {
         throw new RuntimeException(e);
       }
@@ -284,6 +288,8 @@ public class InsertCollectionConcurrency {
     insertTotalTime = (float) ((endTimeTotal - startTimeTotal) / 1000.00);
     logger.info(
         "Total cost of inserting " + totalNum + " entities: " + insertTotalTime + " seconds!");
+    logger.info(
+        "Total insert " + requestNum + " 次数,RPS:" + requestNum/insertTotalTime );
     executorService.shutdown();
     // 实际数据量
     R<GetCollectionStatisticsResponse> collectionStatistics =
