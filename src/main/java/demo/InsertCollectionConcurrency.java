@@ -140,16 +140,16 @@ public class InsertCollectionConcurrency {
     final IndexType INDEX_TYPE = IndexType.AUTOINDEX; // IndexType
     long startIndexTime = System.currentTimeMillis();
     R<RpcStatus> indexR =
-            milvusClient.createIndex(
-                    CreateIndexParam.newBuilder()
-                            .withCollectionName(collectionName)
-                            .withFieldName(bookIntroField.getName())
-                            .withIndexType(INDEX_TYPE)
-                            .withMetricType(MetricType.L2)
-                            .withSyncMode(Boolean.TRUE)
-                            .withSyncWaitingInterval(500L)
-                            .withSyncWaitingTimeout(30L)
-                            .build());
+        milvusClient.createIndex(
+            CreateIndexParam.newBuilder()
+                .withCollectionName(collectionName)
+                .withFieldName(bookIntroField.getName())
+                .withIndexType(INDEX_TYPE)
+                .withMetricType(MetricType.L2)
+                .withSyncMode(Boolean.TRUE)
+                .withSyncWaitingInterval(500L)
+                .withSyncWaitingTimeout(30L)
+                .build());
     long endIndexTime = System.currentTimeMillis();
     logger.info("Succeed in " + (endIndexTime - startIndexTime) / 1000.00 + " seconds!");
 
@@ -258,17 +258,18 @@ public class InsertCollectionConcurrency {
                 throw new RuntimeException(e.getMessage());
               }
               long endTime = System.currentTimeMillis();
-//              logger.info(
-//                  "线程"
-//                      + finalE
-//                      + "插入第"
-//                      + r
-//                      + "批次数据,Insert "
-//                      + batchSize
-//                      + " cost:"
-//                      + (endTime - startTime) / 1000.00
-//                      + " seconds,has insert "
-//                      + ((r - (insertRounds / concurrencyNum) * finalE) + 1) * batchSize);
+              //              logger.info(
+              //                  "线程"
+              //                      + finalE
+              //                      + "插入第"
+              //                      + r
+              //                      + "批次数据,Insert "
+              //                      + batchSize
+              //                      + " cost:"
+              //                      + (endTime - startTime) / 1000.00
+              //                      + " seconds,has insert "
+              //                      + ((r - (insertRounds / concurrencyNum) * finalE) + 1) *
+              // batchSize);
             }
             return results;
           };
@@ -276,12 +277,12 @@ public class InsertCollectionConcurrency {
       list.add(future);
     }
     long endInsertTime = System.currentTimeMillis();
-    long requestNum=0;
+    long requestNum = 0;
     for (Future<List<Integer>> future : list) {
       try {
         long count = future.get().stream().filter(x -> x == 0).count();
         logger.info("线程返回结果：" + future.get());
-        requestNum+=count;
+        requestNum += count;
       } catch (InterruptedException | ExecutionException e) {
         throw new RuntimeException(e);
       }
@@ -290,11 +291,9 @@ public class InsertCollectionConcurrency {
     insertTotalTime = (float) ((endTimeTotal - startTimeTotal) / 1000.00);
     logger.info(
         "Total cost of inserting " + totalNum + " entities: " + insertTotalTime + " seconds!");
-    logger.info(
-        "Total insert " + requestNum + " 次数,RPS avg :" + requestNum/insertTotalTime );
+    logger.info("Total insert " + requestNum + " 次数,RPS avg :" + requestNum / insertTotalTime);
     float insertTime = (float) ((endInsertTime - startInsertTime) / 1000.00);
-    logger.info(
-            "Total insert " + requestNum + " 次数,RPS avd :" + requestNum/insertTime );
+    logger.info("Total insert used:" + insertTime+" seconds!");
     executorService.shutdown();
     // 实际数据量
     R<GetCollectionStatisticsResponse> collectionStatistics =
