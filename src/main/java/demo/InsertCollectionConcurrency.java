@@ -183,7 +183,6 @@ public class InsertCollectionConcurrency {
     float insertTotalTime = 0;
     logger.info("Inserting total " + totalNum + " entities... ");
     long startTimeTotal = System.currentTimeMillis();
-    long startInsertTime = System.currentTimeMillis();
     ExecutorService executorService = Executors.newFixedThreadPool(concurrencyNum);
     ArrayList<Future<List<Integer>>> list = new ArrayList<>();
     // insert data with multiple threads
@@ -276,7 +275,6 @@ public class InsertCollectionConcurrency {
       Future<List<Integer>> future = executorService.submit(callable);
       list.add(future);
     }
-    long endInsertTime = System.currentTimeMillis();
     long requestNum = 0;
     for (Future<List<Integer>> future : list) {
       try {
@@ -292,8 +290,6 @@ public class InsertCollectionConcurrency {
     logger.info(
         "Total cost of inserting " + totalNum + " entities: " + insertTotalTime + " seconds!");
     logger.info("Total insert " + requestNum + " 次数,RPS avg :" + requestNum / insertTotalTime);
-    float insertTime = (float) ((endInsertTime - startInsertTime) / 1000.00);
-    logger.info("Total insert used:" + insertTime+" seconds!");
     executorService.shutdown();
     // 实际数据量
     R<GetCollectionStatisticsResponse> collectionStatistics =
