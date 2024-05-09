@@ -183,6 +183,7 @@ public class InsertCollectionConcurrency {
     float insertTotalTime = 0;
     logger.info("Inserting total " + totalNum + " entities... ");
     long startTimeTotal = System.currentTimeMillis();
+    long startInsertTime = System.currentTimeMillis();
     ExecutorService executorService = Executors.newFixedThreadPool(concurrencyNum);
     ArrayList<Future<List<Integer>>> list = new ArrayList<>();
     // insert data with multiple threads
@@ -257,23 +258,24 @@ public class InsertCollectionConcurrency {
                 throw new RuntimeException(e.getMessage());
               }
               long endTime = System.currentTimeMillis();
-              logger.info(
-                  "线程"
-                      + finalE
-                      + "插入第"
-                      + r
-                      + "批次数据,Insert "
-                      + batchSize
-                      + " cost:"
-                      + (endTime - startTime) / 1000.00
-                      + " seconds,has insert "
-                      + ((r - (insertRounds / concurrencyNum) * finalE) + 1) * batchSize);
+//              logger.info(
+//                  "线程"
+//                      + finalE
+//                      + "插入第"
+//                      + r
+//                      + "批次数据,Insert "
+//                      + batchSize
+//                      + " cost:"
+//                      + (endTime - startTime) / 1000.00
+//                      + " seconds,has insert "
+//                      + ((r - (insertRounds / concurrencyNum) * finalE) + 1) * batchSize);
             }
             return results;
           };
       Future<List<Integer>> future = executorService.submit(callable);
       list.add(future);
     }
+    long endInsertTime = System.currentTimeMillis();
     long requestNum=0;
     for (Future<List<Integer>> future : list) {
       try {
@@ -289,7 +291,10 @@ public class InsertCollectionConcurrency {
     logger.info(
         "Total cost of inserting " + totalNum + " entities: " + insertTotalTime + " seconds!");
     logger.info(
-        "Total insert " + requestNum + " 次数,RPS:" + requestNum/insertTotalTime );
+        "Total insert " + requestNum + " 次数,RPS avg :" + requestNum/insertTotalTime );
+    float insertTime = (float) ((endInsertTime - startInsertTime) / 1000.00);
+    logger.info(
+            "Total insert " + requestNum + " 次数,RPS avd :" + requestNum/insertTime );
     executorService.shutdown();
     // 实际数据量
     R<GetCollectionStatisticsResponse> collectionStatistics =
