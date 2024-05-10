@@ -164,14 +164,14 @@ public class InsertCollectionConcurrency {
       logger.info("Loading collection...");
       long startLoadTime = System.currentTimeMillis();
       int loadState = 0;
+      // load
+      R<RpcStatus> rpcStatusR =
+              milvusClient.loadCollection(
+                      LoadCollectionParam.newBuilder()
+                              .withCollectionName(collectionName)
+                              .withSyncLoad(false)
+                              .build());
       do {
-        // load
-        R<RpcStatus> rpcStatusR =
-            milvusClient.loadCollection(
-                LoadCollectionParam.newBuilder()
-                    .withCollectionName(collectionName)
-                    .withSyncLoad(false)
-                    .build());
         R<GetLoadStateResponse> loadStateResp =
             milvusClient.getLoadState(
                 GetLoadStateParam.newBuilder().withCollectionName(collectionName).build());
