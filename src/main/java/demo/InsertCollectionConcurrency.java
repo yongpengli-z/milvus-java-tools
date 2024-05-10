@@ -261,18 +261,18 @@ public class InsertCollectionConcurrency {
                 throw new RuntimeException(e.getMessage());
               }
               long endTime = System.currentTimeMillis();
-              //              logger.info(
-              //                  "线程"
-              //                      + finalE
-              //                      + "插入第"
-              //                      + r
-              //                      + "批次数据,Insert "
-              //                      + batchSize
-              //                      + " cost:"
-              //                      + (endTime - startTime) / 1000.00
-              //                      + " seconds,has insert "
-              //                      + ((r - (insertRounds / concurrencyNum) * finalE) + 1) *
-              // batchSize);
+                            logger.info(
+                                "线程"
+                                    + finalE
+                                    + "插入第"
+                                    + r
+                                    + "批次数据,Insert "
+                                    + batchSize
+                                    + " cost:"
+                                    + (endTime - startTime) / 1000.00
+                                    + " seconds,has insert "
+                                    + ((r - (insertRounds / concurrencyNum) * finalE) + 1) *
+               batchSize);
             }
             return results;
           };
