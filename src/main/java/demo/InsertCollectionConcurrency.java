@@ -53,6 +53,9 @@ public class InsertCollectionConcurrency {
     boolean segmentListen =
         (System.getProperty("segment_listen") != null
             && System.getProperty("segment_listen").equalsIgnoreCase("true"));
+    boolean partitionKey =
+            (System.getProperty("partition_key") != null
+                    && System.getProperty("partition_key").equalsIgnoreCase("true"));
 
     // 获取root密码
     //    String token = "";
@@ -105,7 +108,7 @@ public class InsertCollectionConcurrency {
             .withAutoID(false)
             .build();
     FieldType wordCountField =
-        FieldType.newBuilder().withName("word_count").withDataType(DataType.Int64).build();
+        FieldType.newBuilder().withName("word_count").withDataType(DataType.Int64).withPartitionKey(partitionKey).build();
     FieldType bookIntroField =
         FieldType.newBuilder()
             .withName("book_intro")
@@ -121,7 +124,7 @@ public class InsertCollectionConcurrency {
               .withDescription("my first collection")
               .withShardsNum(shardNum)
               .addFieldType(bookIdField)
-              //                    .addFieldType(wordCountField)
+              .addFieldType(wordCountField)
               .addFieldType(bookIntroField)
               .build();
       logger.info("Creating example collection: " + collectionName);
@@ -215,8 +218,7 @@ public class InsertCollectionConcurrency {
               }
               List<InsertParam.Field> fields = new ArrayList<>();
               fields.add(new InsertParam.Field(bookIdField.getName(), book_id_array));
-              //                    fields.add(new InsertParam.Field(wordCountField.getName(),
-              // word_count_array));
+              fields.add(new InsertParam.Field(wordCountField.getName(), word_count_array));
               fields.add(new InsertParam.Field(bookIntroField.getName(), book_intro_array));
               InsertParam insertParam =
                   InsertParam.newBuilder()
