@@ -143,22 +143,22 @@ public class InsertCollectionConcurrency {
     }
 
     //  build index
-    logger.info("Building AutoIndex...");
-    final IndexType INDEX_TYPE = IndexType.AUTOINDEX; // IndexType
-    long startIndexTime = System.currentTimeMillis();
-    R<RpcStatus> indexR =
-        milvusClient.createIndex(
-            CreateIndexParam.newBuilder()
-                .withCollectionName(collectionName)
-                .withFieldName(bookIntroField.getName())
-                .withIndexType(INDEX_TYPE)
-                .withMetricType(MetricType.L2)
-                .withSyncMode(Boolean.TRUE)
-                .withSyncWaitingInterval(500L)
-                .withSyncWaitingTimeout(30L)
-                .build());
-    long endIndexTime = System.currentTimeMillis();
-    logger.info("Succeed in " + (endIndexTime - startIndexTime) / 1000.00 + " seconds!");
+//    logger.info("Building AutoIndex...");
+//    final IndexType INDEX_TYPE = IndexType.AUTOINDEX; // IndexType
+//    long startIndexTime = System.currentTimeMillis();
+//    R<RpcStatus> indexR =
+//        milvusClient.createIndex(
+//            CreateIndexParam.newBuilder()
+//                .withCollectionName(collectionName)
+//                .withFieldName(bookIntroField.getName())
+//                .withIndexType(INDEX_TYPE)
+//                .withMetricType(MetricType.L2)
+//                .withSyncMode(Boolean.TRUE)
+//                .withSyncWaitingInterval(500L)
+//                .withSyncWaitingTimeout(30L)
+//                .build());
+//    long endIndexTime = System.currentTimeMillis();
+//    logger.info("Succeed in " + (endIndexTime - startIndexTime) / 1000.00 + " seconds!");
 
     // 是否预load
     if (perLoad) {
